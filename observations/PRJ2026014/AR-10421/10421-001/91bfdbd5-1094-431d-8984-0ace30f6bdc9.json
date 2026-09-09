@@ -1,0 +1,119 @@
+{
+  "observationId": "91bfdbd5-1094-431d-8984-0ace30f6bdc9",
+  "projectId": "PRJ2026014",
+  "trialId": "AR-10421",
+  "observationSequence": "10421-001",
+  "timestamp": "2026-09-09T06:30:00Z",
+  "observationType": "stability_assessment",
+  "status": "submitted",
+  "metadata": {
+    "createdBy": "manjunadam",
+    "submittedAt": "2026-09-09T06:30:00Z",
+    "version": "1.0.0",
+    "dataSource": "ProductStabilityTestMVP"
+  },
+  "observations": {
+    "product": {
+      "name": "Stability Test Product",
+      "batchNumber": "BATCH-2026-001",
+      "manufacturingDate": "2026-08-01",
+      "testStartDate": "2026-09-01",
+      "storageCondition": "Room Temperature (20-25°C)",
+      "storageLocation": "Climate Controlled Storage - Shelf A1"
+    },
+    "physicalCharacteristics": {
+      "appearance": "Clear, colorless liquid",
+      "odor": "Characteristic, no off-odors detected",
+      "color": "APHA < 10",
+      "pH": 6.8,
+      "density": 1.025,
+      "viscosity": "3.2 cP at 25°C"
+    },
+    "chemicalAnalysis": {
+      "activeIngredient": {
+        "name": "Primary Active Compound",
+        "concentration": "45.2 ± 0.5 %",
+        "method": "HPLC",
+        "specification": "40-50%",
+        "status": "PASS"
+      },
+      "impurities": [
+        {
+          "name": "Impurity A",
+          "concentration": "0.15 %",
+          "specification": "< 1.0%",
+          "status": "PASS"
+        },
+        {
+          "name": "Impurity B",
+          "concentration": "0.08 %",
+          "specification": "< 0.5%",
+          "status": "PASS"
+        }
+      ],
+      "moisture": {
+        "value": "0.2 %",
+        "specification": "< 1.0%",
+        "status": "PASS"
+      }
+    },
+    "microbiologicalAnalysis": {
+      "bacterialCount": {
+        "value": "< 100 CFU/mL",
+        "specification": "< 1000 CFU/mL",
+        "status": "PASS"
+      },
+      "fungalCount": {
+        "value": "< 10 CFU/mL",
+        "specification": "< 100 CFU/mL",
+        "status": "PASS"
+      },
+      "pathogenicBacteria": {
+        "value": "Not Detected",
+        "status": "PASS"
+      }
+    },
+    "stabilityIndicators": {
+      "potency": 98.5,
+      "potencyTrend": "stable",
+      "degradationRate": "0.5% per month",
+      "projectedShelfLife": "36 months",
+      "riskFactors": []
+    }
+  },
+  "qualityAssessment": {
+    "overallStatus": "PASS",
+    "complianceStatus": "COMPLIANT",
+    "assessmentDate": "2026-09-09",
+    "assessedBy": "QA Team",
+    "remarks": "Product stability parameters within acceptable range. No anomalies detected. Recommended for release."
+  },
+  "attachments": [
+    {
+      "fileId": "attach-001",
+      "fileName": "hplc_chromatogram.pdf",
+      "fileType": "application/pdf",
+      "uploadedAt": "2026-09-09T06:25:00Z"
+    },
+    {
+      "fileId": "attach-002",
+      "fileName": "microbial_test_report.pdf",
+      "fileType": "application/pdf",
+      "uploadedAt": "2026-09-09T06:26:00Z"
+    },
+    {
+      "fileId": "attach-003",
+      "fileName": "stability_photos.zip",
+      "fileType": "application/zip",
+      "uploadedAt": "2026-09-09T06:27:00Z"
+    }
+  ],
+  "auditTrail": [
+    {
+      "timestamp": "2026-09-09T06:30:00Z",
+      "action": "SUBMITTED",
+      "userId": "manjunadam",
+      "notes": "Initial submission of observation data"
+    }
+  ]
+}
