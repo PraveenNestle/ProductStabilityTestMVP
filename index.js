@@ -1,22 +1,21 @@
 /**
  * Product Stability Test MVP - Main Entry Point
  * 
- * This is the root entry point for the application.
- * For development, the actual application servers are located at:
- * - Frontend: sdct/frontend/ (React + Vite)
- * - Backend API: sdct/backend/api/ (Express.js)
+ * Serves static HTML files from the repository root
+ * Main application: Stability_Capture_Mockup.html (React + Vite compiled)
  */
 
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const url = require('url');
 
 // Define the port
 const PORT = process.env.PORT || 3000;
 
 /**
  * Create HTTP Server
- * Serves a welcome page with links to documentation
+ * Serves static HTML files and documentation
  */
 const server = http.createServer((req, res) => {
   // Set CORS headers
@@ -31,187 +30,155 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Route handling
-  if (req.url === '/' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(getWelcomePage());
-  } else if (req.url === '/health' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }));
-  } else {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not Found', message: 'Endpoint not found' }));
+  // Parse the URL
+  const parsedUrl = url.parse(req.url, true);
+  let pathname = parsedUrl.pathname;
+
+  // Remove leading slash
+  if (pathname === '/') {
+    pathname = '/Stability_Capture_Mockup.html';
   }
+
+  // Health check endpoint
+  if (pathname === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      app: 'Product Stability Test MVP'
+    }));
+    return;
+  }
+
+  // Security: prevent directory traversal
+  if (pathname.includes('..')) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Bad Request' }));
+    return;
+  }
+
+  // Construct file path
+  const filepath = path.join(__dirname, pathname);
+
+  // Check if file exists and serve it
+  fs.stat(filepath, (err, stats) => {
+    if (err || !stats.isFile()) {
+      // File not found - try to serve index or list available files
+      if (pathname !== '/Stability_Capture_Mockup.html') {
+        // Redirect to main app
+        res.writeHead(302, { 'Location': '/' });
+        res.end();
+      } else {
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(get404Page());
+      }
+      return;
+    }
+
+    // Determine content type
+    let contentType = 'application/octet-stream';
+    const ext = path.extname(filepath);
+    
+    switch (ext) {
+      case '.html':
+        contentType = 'text/html; charset=utf-8';
+        break;
+      case '.css':
+        contentType = 'text/css; charset=utf-8';
+        break;
+      case '.js':
+        contentType = 'application/javascript; charset=utf-8';
+        break;
+      case '.json':
+        contentType = 'application/json; charset=utf-8';
+        break;
+      case '.md':
+        contentType = 'text/markdown; charset=utf-8';
+        break;
+      case '.csv':
+        contentType = 'text/csv; charset=utf-8';
+        break;
+      case '.png':
+        contentType = 'image/png';
+        break;
+      case '.jpg':
+      case '.jpeg':
+        contentType = 'image/jpeg';
+        break;
+      case '.gif':
+        contentType = 'image/gif';
+        break;
+      case '.svg':
+        contentType = 'image/svg+xml';
+        break;
+    }
+
+    // Read and serve the file
+    fs.readFile(filepath, (err, data) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal Server Error' }));
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Length': data.length
+      });
+      res.end(data);
+    });
+  });
 });
 
 /**
- * Generate Welcome Page HTML
+ * Generate 404 Page
  */
-function getWelcomePage() {
+function get404Page() {
   return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Product Stability Test MVP</title>
+      <title>404 - Not Found</title>
       <style>
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          line-height: 1.6;
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           min-height: 100vh;
-          color: #333;
+          margin: 0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         .container {
+          text-align: center;
           background: white;
-          border-radius: 10px;
           padding: 40px;
+          border-radius: 10px;
           box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
-        h1 {
-          color: #667eea;
-          margin-top: 0;
-        }
-        h2 {
-          color: #764ba2;
-          border-bottom: 2px solid #667eea;
-          padding-bottom: 10px;
-          margin-top: 30px;
-        }
-        .status {
-          background: #d4edda;
-          border: 1px solid #c3e6cb;
-          color: #155724;
-          padding: 15px;
-          border-radius: 5px;
-          margin: 20px 0;
-        }
-        .links {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 15px;
-          margin: 20px 0;
-        }
-        .link-card {
-          background: #f8f9fa;
-          border-left: 4px solid #667eea;
-          padding: 15px;
-          border-radius: 5px;
+        h1 { color: #667eea; font-size: 3em; margin: 0; }
+        p { color: #666; font-size: 1.2em; }
+        a {
+          display: inline-block;
+          margin-top: 20px;
+          padding: 10px 20px;
+          background: #667eea;
+          color: white;
           text-decoration: none;
-          color: #333;
-          transition: all 0.3s ease;
-        }
-        .link-card:hover {
-          background: #e9ecef;
-          transform: translateX(5px);
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .link-card h3 {
-          margin: 0 0 5px 0;
-          color: #667eea;
-        }
-        .link-card p {
-          margin: 0;
-          font-size: 14px;
-          color: #666;
-        }
-        .tech-stack {
-          background: #f8f9fa;
-          padding: 15px;
           border-radius: 5px;
-          margin: 20px 0;
+          transition: background 0.3s;
         }
-        .tech-stack ul {
-          margin: 10px 0;
-          padding-left: 20px;
-        }
-        .tech-stack li {
-          margin: 5px 0;
-        }
+        a:hover { background: #764ba2; }
       </style>
     </head>
     <body>
       <div class="container">
-        <h1>🚀 Product Stability Test MVP</h1>
-        <p>Capture, review, extract and analyze product stability testing data</p>
-        
-        <div class="status">
-          <strong>✓ Status: Running</strong><br>
-          Server is operational and ready to serve requests.
-        </div>
-
-        <h2>📚 Documentation & Resources</h2>
-        <div class="links">
-          <a href="/README.md" class="link-card">
-            <h3>README</h3>
-            <p>Project overview and getting started guide</p>
-          </a>
-          <a href="/ARCHITECTURE_DECISIONS.md" class="link-card">
-            <h3>Architecture Decisions</h3>
-            <p>Technical architecture and design decisions</p>
-          </a>
-          <a href="/SCHEMA_SUMMARY.md" class="link-card">
-            <h3>Schema Summary</h3>
-            <p>Data model and schema definitions</p>
-          </a>
-          <a href="/REQUIREMENTS_TRACEABILITY.md" class="link-card">
-            <h3>Requirements Traceability</h3>
-            <p>Requirements mapping and compliance tracking</p>
-          </a>
-        </div>
-
-        <h2>🛠️ Technology Stack</h2>
-        <div class="tech-stack">
-          <h3>Frontend</h3>
-          <ul>
-            <li><strong>Framework:</strong> React 18.3</li>
-            <li><strong>Build Tool:</strong> Vite 5.4</li>
-            <li><strong>Auth:</strong> Azure MSAL</li>
-          </ul>
-          
-          <h3>Backend</h3>
-          <ul>
-            <li><strong>Runtime:</strong> Node.js 22.x</li>
-            <li><strong>Framework:</strong> Express.js</li>
-            <li><strong>Storage:</strong> Azure Blob Storage</li>
-            <li><strong>Security:</strong> Helmet, CORS, JWT</li>
-          </ul>
-        </div>
-
-        <h2>🔗 API Endpoints</h2>
-        <ul>
-          <li><code>GET /</code> - Welcome page (this page)</li>
-          <li><code>GET /health</code> - Health check endpoint</li>
-        </ul>
-
-        <h2>📦 Project Structure</h2>
-        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">
-ProductStabilityTestMVP/
-├── sdct/
-│   ├── frontend/          # React + Vite frontend application
-│   └── backend/api/       # Express.js backend API
-├── index.js               # This file - root entry point
-├── package.json           # Root package configuration
-├── README.md              # Project documentation
-└── [HTML/Documentation]   # Analysis reports and documentation files
-        </pre>
-
-        <h2>⚙️ Environment</h2>
-        <ul>
-          <li><strong>Node Version:</strong> ${process.version}</li>
-          <li><strong>Port:</strong> ${PORT}</li>
-          <li><strong>Environment:</strong> ${process.env.NODE_ENV || 'development'}</li>
-          <li><strong>Platform:</strong> ${process.platform}</li>
-        </ul>
-
-        <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;">
-        <p style="text-align: center; color: #666; font-size: 14px;">
-          Product Stability Test MVP © 2024 | Powered by Node.js & Express
-        </p>
+        <h1>404</h1>
+        <p>Page not found</p>
+        <a href="/">Return to Main App</a>
       </div>
     </body>
     </html>
@@ -219,9 +186,11 @@ ProductStabilityTestMVP/
 }
 
 // Start the server
-server.listen(PORT, () => {
-  console.log(`✓ Server running at http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ Product Stability Test MVP running at http://localhost:${PORT}`);
+  console.log(`✓ Main app: http://localhost:${PORT}/Stability_Capture_Mockup.html`);
   console.log(`✓ Health check: http://localhost:${PORT}/health`);
+  console.log(`✓ Serving files from: ${__dirname}`);
 });
 
 // Graceful shutdown
