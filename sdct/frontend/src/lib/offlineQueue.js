@@ -18,6 +18,7 @@ export function saveDraft(draftKey, draft) {
   const all = read(KEY_DRAFTS) || {};
   all[draftKey] = { ...draft, savedAt: new Date().toISOString() };
   write(KEY_DRAFTS, all);
+  console.log(all)
 }
 export function loadDraft(draftKey) { return (read(KEY_DRAFTS) || {})[draftKey] || null; }
 export function clearDraft(draftKey) { const all = read(KEY_DRAFTS) || {}; delete all[draftKey]; write(KEY_DRAFTS, all); }
