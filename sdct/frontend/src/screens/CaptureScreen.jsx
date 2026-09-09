@@ -6,6 +6,7 @@ import { useToast, Modal } from '../components/ui.jsx';
 import { isVisible } from '../lib/branching.js';
 import { validateObservation, completeness, isRequired, isSystemField } from '../lib/validation.js';
 import { saveDraft, loadDraft, clearDraft, enqueue } from '../lib/offlineQueue.js';
+import { recordSubmission } from '../lib/submissionHistory.js';
 import { uuid } from '../lib/format.js';
 import { observationBlobPath } from '../lib/naming.js';
 import { suggestAll, RATING_FIELDS } from '../lib/ratings.js';
@@ -19,7 +20,7 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
   const [projects, setProjects] = useState([]); const [ars, setArs] = useState([]); const [trials, setTrials] = useState([]);
   const [variants, setVariants] = useState([]); const [samples, setSamples] = useState([]); const [plan, setPlan] = useState(null);
   const [templates, setTemplates] = useState([]); const [existing, setExisting] = useState([]);
-  const [ctx, setCtx] = useState({ projectCode: '', arNumber: '', trialNumber: '', variantId: '', variantNumber: '', sampleCode: '', timePointCode: '', conditionCode: '', formulationClass: '', ...(initialContext || {}) });
+  const [ctx, setCtx] = useState({ projectCode: '', arNumber: '', trialNumber: '', variantId: '', variantNumber: '', sampleCode: '', timePointCode: '', conditionCode: '', formulationClass: '', ...[...]
   const [templateId, setTemplateId] = useState('');
   const [values, setValues] = useState({});
   const [problems, setProblems] = useState([]);
@@ -34,14 +35,14 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
   useEffect(() => { api.getProjects().then(setProjects); api.listTemplates().then((t) => setTemplates(t.filter((x) => x.status !== 'RETIRED'))); }, []);
   useEffect(() => { if (ctx.projectCode) api.getARs(ctx.projectCode).then(setArs); else setArs([]); }, [ctx.projectCode]);
   useEffect(() => { if (ctx.arNumber) { api.getTrials(ctx.arNumber).then(setTrials); api.getPlan(ctx.arNumber).then(setPlan); } else { setTrials([]); setPlan(null); } }, [ctx.arNumber]);
-  useEffect(() => { if (ctx.arNumber && ctx.trialNumber) { api.getVariants(ctx.arNumber, ctx.trialNumber).then(setVariants); api.listObservations({ arNumber: ctx.arNumber, trialNumber: ctx.trialNumber }).then(setExisting); } else { setVariants([]); setExisting([]); } }, [ctx.arNumber, ctx.trialNumber]);
+  useEffect(() => { if (ctx.arNumber && ctx.trialNumber) { api.getVariants(ctx.arNumber, ctx.trialNumber).then(setVariants); api.listObservations({ arNumber: ctx.arNumber, trialNumber: ctx.trialNu[...]
   useEffect(() => { if (ctx.variantId) api.getSamples(ctx.variantId).then(setSamples); else setSamples([]); }, [ctx.variantId]);
 
   const trial = trials.find((t) => t.trialNumber === ctx.trialNumber);
   const formulationClass = trial?.formulationClass || projects.find((p) => p.projectCode === ctx.projectCode)?.formulationClass || '';
   useEffect(() => { setCtx((c) => ({ ...c, formulationClass, planId: plan?.planId || null, planVersion: plan?.planVersion || null })); }, [formulationClass, plan]);
   const classTemplates = templates.filter((t) => !formulationClass || t.formulationClass === formulationClass);
-  useEffect(() => { if (!classTemplates.some((t) => t.templateId === templateId)) setTemplateId(classTemplates.find((t) => t.status === 'ACTIVE')?.templateId || classTemplates[0]?.templateId || ''); }, [classTemplates, templateId]);
+  useEffect(() => { if (!classTemplates.some((t) => t.templateId === templateId)) setTemplateId(classTemplates.find((t) => t.status === 'ACTIVE')?.templateId || classTemplates[0]?.templateId || ''[...]
   const template = templates.filter((t) => t.templateId === templateId).sort((a, b) => b.version - a.version)[0];
 
   // ---- selection helpers
@@ -61,9 +62,9 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
   useEffect(() => {
     if (!contextComplete) return;
     const d = loadDraft(draftKey);
-    if (d && Object.keys(d.values || {}).length > 3) { setValues(d.values); observationIdRef.current = d.observationId || uuid(); setDraftNotice(d.savedAt); } else { setValues(freshValues()); observationIdRef.current = uuid(); setDraftNotice(null); }
+    if (d && Object.keys(d.values || {}).length > 3) { setValues(d.values); observationIdRef.current = d.observationId || uuid(); setDraftNotice(d.savedAt); } else { setValues(freshValues()); obse[...]
   }, [draftKey, contextComplete]);
-  useEffect(() => { if (contextComplete && Object.keys(values).length > 3) saveDraft(draftKey, { values: stripFiles(values), observationId: observationIdRef.current, context: ctx }); }, [values, draftKey, contextComplete]);
+  useEffect(() => { if (contextComplete && Object.keys(values).length > 3) saveDraft(draftKey, { values: stripFiles(values), observationId: observationIdRef.current, context: ctx }); }, [values, d[...]
 
   // ---- ordered fields from template sections, with branching applied
   const sections = useMemo(() => (template?.sections || []).map((s) => ({ label: s.label, fields: s.fields.map((c) => fieldIndex[c]).filter(Boolean) })), [template, fieldIndex]);
@@ -95,7 +96,7 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
     const i = list.findIndex((f) => f.fieldCode === code);
     for (let j = i + 1; j < list.length; j += 1) {
       const el = focusables.current.get(list[j].fieldCode);
-      if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); const sec = sections.find((s) => s.fields.some((f) => f.fieldCode === list[j].fieldCode)); if (sec) setActive(sec.label); return; }
+      if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); const sec = sections.find((s) => s.fields.some((f) => f.fieldCode === list[j].fieldCo[...]
     }
   }, [visibleOrdered, sections]);
 
@@ -111,15 +112,15 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
       if (!e || (e.value === null || e.value === undefined || e.value === '' || (Array.isArray(e.value) && !e.value.length)) && !e.isNA) return;
       if (f.dataType.startsWith('media')) {
         e.value.forEach((m) => media.push(sanitizeMedia(m, ctx)));
-        docValues.push({ fieldCode: f.fieldCode, domainCode: f.domainCode, dataType: f.dataType, value: e.value.map((m) => m.mediaAssetId), unit: null, isNA: false, naReason: null, mediaAssetId: e.value[0]?.mediaAssetId || null });
+        docValues.push({ fieldCode: f.fieldCode, domainCode: f.domainCode, dataType: f.dataType, value: e.value.map((m) => m.mediaAssetId), unit: null, isNA: false, naReason: null, mediaAssetId: [...]
         return;
       }
-      docValues.push({ fieldCode: f.fieldCode, domainCode: f.domainCode, dataType: f.dataType, value: e.isNA ? null : e.value, unit: f.unit || null, isNA: !!e.isNA, naReason: e.isNA ? e.naReason || null : null, mediaAssetId: null });
+      docValues.push({ fieldCode: f.fieldCode, domainCode: f.domainCode, dataType: f.dataType, value: e.isNA ? null : e.value, unit: f.unit || null, isNA: !!e.isNA, naReason: e.isNA ? e.naReason [...]
     });
     const overall = values.overall_result;
     return {
       schemaVersion: '1.0', observationId: observationIdRef.current, versionNo: 1, status,
-      context: { projectCode: ctx.projectCode, arNumber: ctx.arNumber, trialNumber: ctx.trialNumber, variantId: ctx.variantId || null, variantNumber: ctx.variantNumber || null, sampleCode: ctx.sampleCode, timePointCode: ctx.timePointCode, conditionCode: ctx.conditionCode, formulationClass: ctx.formulationClass, planId: plan?.planId || null, planVersion: plan?.planVersion || null, sourceSystem: 'REFERENCE_STORE' },
+      context: { projectCode: ctx.projectCode, arNumber: ctx.arNumber, trialNumber: ctx.trialNumber, variantId: ctx.variantId || null, variantNumber: ctx.variantNumber || null, sampleCode: ctx.sa[...]
       template: { templateId: template.templateId, templateVersion: template.version, templateName: template.templateName },
       resultType: values.result_type?.value || 'SCHEDULED', overallResult: overall?.isNA ? null : overall?.value || null, overallResultNA: !!overall?.isNA,
       observer: { userId: user.userId, displayName: user.displayName, upn: user.upn, role: user.role },
@@ -142,6 +143,10 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
     try {
       if (!online) throw new Error('offline');
       const res = await api.submitObservation(doc, files);
+      
+      // Record successful submission to localStorage audit trail
+      recordSubmission(doc, files);
+      
       clearDraft(draftKey); setValues(freshValues()); setProblems([]); observationIdRef.current = uuid();
       setExisting((e) => [{ ...doc, storage: { blobPath: res.blobPath } }, ...e]);
       toast(`Submitted ${doc.context.sampleCode} at ${doc.context.timePointCode}. ${files.length} media file${files.length === 1 ? '' : 's'} named to the standard.`, 'ok');
@@ -156,7 +161,7 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
 
   const secStatus = (s) => {
     const req = s.fields.filter((f) => !isSystemField(f) && isVisible(f, values, fieldIndex) && isRequired(f, template));
-    const done = req.filter((f) => { const e = values[f.fieldCode]; return (e?.isNA && f.allowNA) || (e?.value !== undefined && e?.value !== null && e?.value !== '' && !(Array.isArray(e.value) && !e.value.length)); }).length;
+    const done = req.filter((f) => { const e = values[f.fieldCode]; return (e?.isNA && f.allowNA) || (e?.value !== undefined && e?.value !== null && e?.value !== '' && !(Array.isArray(e.value) &&[...]
     return { req: req.length, done };
   };
   const domainOf = (s) => s.fields[0]?.domainCode || 'TEST_CONTEXT';
@@ -171,19 +176,19 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
         <div className="row spread" style={{ marginBottom: 10 }}>
           <div>
             <h1>Capture observation</h1>
-            <div className="muted small">Context comes from the NESTMS reference data and cannot be edited here. Choose the sample, then work down the questionnaire. <kbd>Enter</kbd> or <kbd>Tab</kbd> moves to the next field.</div>
+            <div className="muted small">Context comes from the NESTMS reference data and cannot be edited here. Choose the sample, then work down the questionnaire. <kbd>Enter</kbd> or <kbd>Tab<[...]
           </div>
           {DEMO_MODE && <span className="pill">Demo data</span>}
         </div>
         <div className="context-bar">
           <Sel label="Project" value={ctx.projectCode} onChange={(v) => setCtxField('projectCode', v)} options={projects.map((p) => [p.projectCode, `${p.projectCode}  ${p.projectName}`])} />
-          <Sel label="Stability AR" value={ctx.arNumber} onChange={(v) => setCtxField('arNumber', v)} options={ars.map((a) => [a.arNumber, `${a.arNumber}  ${a.arTitle}`])} disabled={!ctx.projectCode} />
-          <Sel label="Trial" value={ctx.trialNumber} onChange={(v) => setCtxField('trialNumber', v)} options={trials.map((t) => [t.trialNumber, `${t.trialNumber}  ${t.trialDescription}`])} disabled={!ctx.arNumber} />
-          <Sel label="Variant" value={ctx.variantId} onChange={(v) => setCtxField('variantId', v)} options={variants.map((v) => [v.variantId, `${v.variantNumber}  ${v.variantDescription}`])} disabled={!ctx.trialNumber} />
-          <Sel label="Sample" value={ctx.sampleCode} onChange={(v) => setCtxField('sampleCode', v)} options={samples.map((s) => [s.sampleCode, `${s.sampleCode}  (${condLabels[s.conditionCode] || s.conditionCode})`])} disabled={!ctx.variantId} />
-          <Sel label="Time point" value={ctx.timePointCode} onChange={(v) => setCtxField('timePointCode', v)} options={(plan?.timePoints || []).map((tp) => [tp, vocabIndex.TIME_POINT?.values.find((x) => x.code === tp)?.label || tp])} disabled={!plan} />
-          <div className="ctx"><span className="lbl">Storage condition</span><div className="ctx-readonly">{ctx.conditionCode ? condLabels[ctx.conditionCode] : <span className="muted">From sample</span>}</div></div>
-          <Sel label="Questionnaire template" value={templateId} onChange={setTemplateId} options={classTemplates.map((t) => [t.templateId, `${t.templateName} (v${t.version}${t.status === 'DRAFT' ? ', draft' : ''})`])} disabled={!classTemplates.length} />
+          <Sel label="Stability AR" value={ctx.arNumber} onChange={(v) => setCtxField('arNumber', v)} options={ars.map((a) => [a.arNumber, `${a.arNumber}  ${a.arTitle}`])} disabled={!ctx.projectC[...]
+          <Sel label="Trial" value={ctx.trialNumber} onChange={(v) => setCtxField('trialNumber', v)} options={trials.map((t) => [t.trialNumber, `${t.trialNumber}  ${t.trialDescription}`])} disabl[...]
+          <Sel label="Variant" value={ctx.variantId} onChange={(v) => setCtxField('variantId', v)} options={variants.map((v) => [v.variantId, `${v.variantNumber}  ${v.variantDescription}`])} disa[...]
+          <Sel label="Sample" value={ctx.sampleCode} onChange={(v) => setCtxField('sampleCode', v)} options={samples.map((s) => [s.sampleCode, `${s.sampleCode}  (${condLabels[s.conditionCode] || [...]
+          <Sel label="Time point" value={ctx.timePointCode} onChange={(v) => setCtxField('timePointCode', v)} options={(plan?.timePoints || []).map((tp) => [tp, vocabIndex.TIME_POINT?.values.find[...]
+          <div className="ctx"><span className="lbl">Storage condition</span><div className="ctx-readonly">{ctx.conditionCode ? condLabels[ctx.conditionCode] : <span className="muted">From sample[...]
+          <Sel label="Questionnaire template" value={templateId} onChange={setTemplateId} options={classTemplates.map((t) => [t.templateId, `${t.templateName} (v${t.version}${t.status === 'DRAFT'[...]
         </div>
       </div>
 
@@ -191,8 +196,8 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
         <div className="grid-2">
           <div className="card">
             <h2>Choose the sample to observe</h2>
-            <p className="muted">Pick the project, stability AR, trial, variant, sample and time point above. Trial, AR, variant, time point and storage condition are never typed in: they come from the AR plan so every observation stays traceable end to end.</p>
-            {plan && <PlanGrid plan={plan} observations={existing.filter((o) => !ctx.variantId || o.context.variantId === ctx.variantId)} selected={ctx} condLabels={condLabels} onSelect={(tp, cond) => { setCtxField('timePointCode', tp); const s = samples.find((x) => x.conditionCode === cond); if (s) setCtxField('sampleCode', s.sampleCode); }} />}
+            <p className="muted">Pick the project, stability AR, trial, variant, sample and time point above. Trial, AR, variant, time point and storage condition are never typed in: they come fr[...]
+            {plan && <PlanGrid plan={plan} observations={existing.filter((o) => !ctx.variantId || o.context.variantId === ctx.variantId)} selected={ctx} condLabels={condLabels} onSelect={(tp, con[...]
           </div>
           <div className="card quiet">
             <h3>What this capture enforces</h3>
@@ -212,7 +217,7 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
         <div className="grid-3">
           <nav className="rail" aria-label="Questionnaire sections">
             {sections.map((s) => { const st = secStatus(s); return (
-              <button key={s.label} type="button" className="rail-item" aria-current={active === s.label} style={{ '--stripe': `var(--d-${domainOf(s)})` }} onClick={() => { setActive(s.label); document.getElementById(`sec-${slug(s.label)}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }}>
+              <button key={s.label} type="button" className="rail-item" aria-current={active === s.label} style={{ '--stripe': `var(--d-${domainOf(s)})` }} onClick={() => { setActive(s.label); do[...]
                 <span className="rail-stripe" /><span className="name">{s.label}</span>
                 <span className={`count ${st.req && st.done === st.req ? 'done' : ''}`}>{st.req ? `${st.done}/${st.req}` : ''}</span>
               </button>
@@ -220,21 +225,21 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
           </nav>
 
           <div>
-            {draftNotice && <div className="hint" style={{ marginBottom: 12 }}>Draft restored from this device (saved {new Date(draftNotice).toLocaleTimeString()}). <button className="btn link" onClick={() => { clearDraft(draftKey); setValues(freshValues()); setDraftNotice(null); }}>Discard draft</button></div>}
+            {draftNotice && <div className="hint" style={{ marginBottom: 12 }}>Draft restored from this device (saved {new Date(draftNotice).toLocaleTimeString()}). <button className="btn link" o[...]
             {problems.length > 0 && (
               <div className="problems" role="alert">
                 <b>{problems.length} item{problems.length > 1 ? 's' : ''} to fix before submitting</b>
-                <ul>{problems.map((p) => <li key={p.fieldCode}><button type="button" onClick={() => { document.getElementById(`field-${p.fieldCode}`)?.scrollIntoView({ block: 'center' }); focusables.current.get(p.fieldCode)?.focus(); }}>{p.label}</button>: {p.reason}</li>)}</ul>
+                <ul>{problems.map((p) => <li key={p.fieldCode}><button type="button" onClick={() => { document.getElementById(`field-${p.fieldCode}`)?.scrollIntoView({ block: 'center' }); focusab[...]
               </div>
             )}
             {sections.map((s) => (
               <section key={s.label} className="section" id={`sec-${slug(s.label)}`} style={{ '--stripe': `var(--d-${domainOf(s)})` }}>
-                <div className="section-head"><span className="stripe" /><h2>{s.label}</h2><span className="scope">{catalog.domains.find((d) => d.domainCode === domainOf(s))?.mvpScope === 'SCHEMA_READY' ? 'Schema-ready domain' : ''}</span></div>
+                <div className="section-head"><span className="stripe" /><h2>{s.label}</h2><span className="scope">{catalog.domains.find((d) => d.domainCode === domainOf(s))?.mvpScope === 'SCHEMA[...]
                 {s.fields.map((f) => {
                   if (!isVisible(f, values, fieldIndex)) return null;
                   const ctxVal = isSystemField(f) ? headerValue(f, ctx, sample, user, vocabIndex, condLabels) : undefined;
-                  return <FieldRow key={f.fieldCode} field={f} entry={values[f.fieldCode]} vocab={f.vocabularyCode ? vocabIndex[f.vocabularyCode] : null} onChange={onChange} onNext={focusNext} register={register}
-                    required={isRequired(f, template)} isBranch={!!f.dependsOnField} hasProblem={problemSet.has(f.fieldCode)} readOnly={isSystemField(f)} context={{ ...ctx, [f.fieldCode]: ctxVal }}
+                  return <FieldRow key={f.fieldCode} field={f} entry={values[f.fieldCode]} vocab={f.vocabularyCode ? vocabIndex[f.vocabularyCode] : null} onChange={onChange} onNext={focusNext} re[...]
+                    required={isRequired(f, template)} isBranch={!!f.dependsOnField} hasProblem={problemSet.has(f.fieldCode)} readOnly={isSystemField(f)} context={{ ...ctx, [f.fieldCode]: ctxVal [...]
                     suggestion={suggestions[f.fieldCode]} />;
                 })}
               </section>
@@ -242,10 +247,10 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
             <div className="submit-bar">
               <div className="progress">
                 <div className="track"><div className="fill" style={{ width: `${comp.required ? Math.round((comp.done / comp.required) * 100) : 0}%` }} /></div>
-                <div className="txt">{comp.done} of {comp.required} required fields complete · {visibleOrdered.filter((f) => !isSystemField(f)).length} fields shown of {capturable.length} in template</div>
+                <div className="txt">{comp.done} of {comp.required} required fields complete · {visibleOrdered.filter((f) => !isSystemField(f)).length} fields shown of {capturable.length} in tem[...]
               </div>
               {!online && <span className="pill offline">Offline: will queue</span>}
-              <button className="btn" onClick={() => { saveDraft(draftKey, { values: stripFiles(values), observationId: observationIdRef.current, context: ctx }); toast('Draft saved on this device'); }}>Save draft</button>
+              <button className="btn" onClick={() => { saveDraft(draftKey, { values: stripFiles(values), observationId: observationIdRef.current, context: ctx }); toast('Draft saved on this devic[...]
               <button className="btn primary" disabled={busy} onClick={submit}>{busy ? 'Submitting…' : 'Submit observation'}</button>
             </div>
           </div>
@@ -265,25 +270,25 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
             </div>
             <div className="card">
               <h3>Plan progress, {ctx.variantNumber}</h3>
-              <PlanGrid plan={plan} observations={existing.filter((o) => o.context.variantId === ctx.variantId)} selected={ctx} condLabels={condLabels} onSelect={(tp, cond) => { setCtxField('timePointCode', tp); const s = samples.find((x) => x.conditionCode === cond); if (s) setCtxField('sampleCode', s.sampleCode); }} />
+              <PlanGrid plan={plan} observations={existing.filter((o) => o.context.variantId === ctx.variantId)} selected={ctx} condLabels={condLabels} onSelect={(tp, cond) => { setCtxField('time[...]
             </div>
             <div className="card quiet">
               <h3>Packaging and recipe facts</h3>
               <div className="kv">
-                <span className="k">Bottle</span><span className="v">{[sample?.bottleClarity && (sample.bottleClarity === 'CLEAR' ? 'Clear' : 'Opaque'), sample?.bottleBaseGeometry && (sample.bottleBaseGeometry === 'RAISED_CENTER' ? 'raised center' : 'flat base')].filter(Boolean).join(', ') || 'Not recorded'}</span>
+                <span className="k">Bottle</span><span className="v">{[sample?.bottleClarity && (sample.bottleClarity === 'CLEAR' ? 'Clear' : 'Opaque'), sample?.bottleBaseGeometry && (sample.bott[...]
                 {sample?.packagingDescription && <><span className="k">Packaging</span><span className="v">{sample.packagingDescription}</span></>}
                 {sample?.sourceFactory && <><span className="k">Filled at</span><span className="v">{sample.sourceFactory}</span></>}
                 {trial?.processScale && <><span className="k">Process scale</span><span className="v">{trial.processScale.replace(/_/g, ' ').toLowerCase()}</span></>}
                 {variantRef?.phTarget && <><span className="k">pH target</span><span className="v">{variantRef.phTarget}</span></>}
-                {variantRef?.containsHydrolysates !== undefined && variantRef?.containsHydrolysates !== null && <><span className="k">Hydrolysates</span><span className="v">{variantRef.containsHydrolysates ? 'Yes' : 'No'}</span></>}
+                {variantRef?.containsHydrolysates !== undefined && variantRef?.containsHydrolysates !== null && <><span className="k">Hydrolysates</span><span className="v">{variantRef.containsHy[...]
               </div>
-              <div className="small muted" style={{ marginTop: 6 }}>{sample?.bottleBaseGeometry === 'RAISED_CENTER' ? 'Raised-center bottle: the SOP needs 4 mm at the outer rim for a sediment rating of 4. The suggested ratings account for it.' : 'Measure sediment at the outer rim (SOP worst case). Ratings are suggested from your measurements.'}{variantRef?.containsHydrolysates ? ' Hydrolysate recipes are more prone to serum; record % of package volume when you see it.' : ''}</div>
+              <div className="small muted" style={{ marginTop: 6 }}>{sample?.bottleBaseGeometry === 'RAISED_CENTER' ? 'Raised-center bottle: the SOP needs 4 mm at the outer rim for a sediment rat[...]
             </div>
             {priorForSample.length > 0 && (
               <div className="card">
                 <h3>Earlier pulls for this sample</h3>
                 <div className="stack">
-                  {priorForSample.slice(0, 6).map((o) => <div key={o.observationId} className="row spread small"><span>{o.context.timePointCode} · {new Date(o.observedAt).toLocaleDateString()}</span><span className={`pill ${o.overallResult === 'IN' ? 'ok' : o.overallResult === 'JUST_IN' ? 'watch' : 'fail'}`}>{{ IN: 'In', JUST_IN: 'Just In', OUT: 'Out' }[o.overallResult] || o.overallResult}</span></div>)}
+                  {priorForSample.slice(0, 6).map((o) => <div key={o.observationId} className="row spread small"><span>{o.context.timePointCode} · {new Date(o.observedAt).toLocaleDateString()}</[...]
                 </div>
               </div>
             )}
@@ -292,7 +297,7 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
       )}
 
       {confirm && (
-        <Modal title="Submit this observation?" onClose={() => setConfirm(null)} footer={<><button className="btn" onClick={() => setConfirm(null)}>Keep editing</button><button className="btn primary" onClick={confirmSubmit}>Submit</button></>}>
+        <Modal title="Submit this observation?" onClose={() => setConfirm(null)} footer={<><button className="btn" onClick={() => setConfirm(null)}>Keep editing</button><button className="btn pri[...]
           <div className="kv">
             <span className="k">Sample</span><span className="v">{confirm.context.sampleCode}</span>
             <span className="k">Time point, condition</span><span className="v">{confirm.context.timePointCode}, {condLabels[confirm.context.conditionCode]}</span>
@@ -301,7 +306,7 @@ export function CaptureScreen({ catalog, user, online, initialContext, onSubmitt
             <span className="k">Media</span><span className="v">{confirm.media.length} file{confirm.media.length === 1 ? '' : 's'}</span>
             <span className="k">Lands at</span><span className="v mono small">observations/{observationBlobPath(confirm.context, confirm.observationId)}</span>
           </div>
-          <p className="small muted" style={{ marginTop: 12 }}>Media is uploaded first with its standard filename, then the record is written. If anything fails, nothing partial is stored (R-35).</p>
+          <p className="small muted" style={{ marginTop: 12 }}>Media is uploaded first with its standard filename, then the record is written. If anything fails, nothing partial is stored (R-35).[...]
         </Modal>
       )}
     </div>
@@ -321,15 +326,15 @@ function Sel({ label, value, onChange, options, disabled }) {
 }
 function headerValue(f, ctx, sample, user, vocabIndex, condLabels) {
   switch (f.fieldCode) {
-    case 'project_code': return ctx.projectCode; case 'ar_number': return ctx.arNumber; case 'trial_number': return ctx.trialNumber; case 'variant_number': return ctx.variantNumber; case 'sample_code': return ctx.sampleCode;
-    case 'time_point': return vocabIndex.TIME_POINT?.values.find((x) => x.code === ctx.timePointCode)?.label || ctx.timePointCode; case 'temperature_condition': return condLabels[ctx.conditionCode];
+    case 'project_code': return ctx.projectCode; case 'ar_number': return ctx.arNumber; case 'trial_number': return ctx.trialNumber; case 'variant_number': return ctx.variantNumber; case 'sample_[...]
+    case 'time_point': return vocabIndex.TIME_POINT?.values.find((x) => x.code === ctx.timePointCode)?.label || ctx.timePointCode; case 'temperature_condition': return condLabels[ctx.conditionCod[...]
     case 'observer_user_id': return `${user.displayName} (${user.upn})`;
     case 'formulation_class': return vocabIndex.FORMULATION_CLASS?.values.find((x) => x.code === ctx.formulationClass)?.label || ctx.formulationClass;
     case 'test_status': return 'Draft until submitted';
     default: return undefined;
   }
 }
-function sanitizeMedia(m, ctx) { const { previewUrl, file, ...rest } = m; return { ...rest, blobUri: `https://<storageaccount>.blob.core.windows.net/media/${rest.blobPath}`, checksumSha256: null, _ctx: undefined, ...(ctx ? {} : {}) }; }
-function stripFiles(values) { const out = {}; Object.entries(values).forEach(([k, e]) => { out[k] = Array.isArray(e?.value) && e.value[0]?.mediaAssetId ? { ...e, value: e.value.map(({ file, previewUrl, ...m }) => m) } : e; }); return out; }
+function sanitizeMedia(m, ctx) { const { previewUrl, file, ...rest } = m; return { ...rest, blobUri: `https://<storageaccount>.blob.core.windows.net/media/${rest.blobPath}`, checksumSha256: null,[...]
+function stripFiles(values) { const out = {}; Object.entries(values).forEach(([k, e]) => { out[k] = Array.isArray(e?.value) && e.value[0]?.mediaAssetId ? { ...e, value: e.value.map(({ file, previ[...]
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-const freshValues = () => ({ observation_timestamp: { value: new Date().toISOString(), isNA: false, naReason: null }, result_type: { value: 'SCHEDULED', isNA: false, naReason: null }, shake_protocol: { value: 'SOP_10X_180', isNA: false, naReason: null } });
+const freshValues = () => ({ observation_timestamp: { value: new Date().toISOString(), isNA: false, naReason: null }, result_type: { value: 'SCHEDULED', isNA: false, naReason: null }, shake_proto[...]
