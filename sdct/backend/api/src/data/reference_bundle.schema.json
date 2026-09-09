@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nhsc.example/schemas/stability/reference_bundle.schema.json",
   "title": "Reference data bundle (reference container)",
-  "description": "Exports from NESTMS (projects, ARs, trials, variants, samples, plans) plus the user directory. Lab results are typed into the questionnaire; there is no LIMS integration. Uploaded through the Admin screen or backend/api/tools/import_reference.mjs; the API stores one JSON array per entity under reference/ and a _manifest.json. Generated from vocabularies.csv so condition and time point codes match the capture vocabulary.",
+  "description": "Exports from NESTMS (projects, ARs, trials, variants, samples, plans) plus the user directory. Lab results are typed into the questionnaire; there is no LIMS integration. Uploaded by admin or tools/import_reference.mjs.",
   "type": "object",
   "required": [
     "projects",
